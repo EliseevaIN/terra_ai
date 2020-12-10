@@ -1,12 +1,16 @@
 README.rst
 setup.cfg
 setup.py
+terra_ai/home.py
+terra_ai/traide.py
+terra_ai/генетика.py
 terra_ai/датасет.py
 terra_ai/квартиры.py
 terra_ai/модель.py
 terra_ai/обнаружение.py
 terra_ai/обработка_текста.py
 terra_ai/повышение_размерности.py
+terra_ai/ряды.py
 terra_ai/сегментация.py
 terra_ai/сегментация_договоров.py
 terra_ai/терра_ии.py

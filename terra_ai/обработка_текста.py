@@ -9,6 +9,7 @@ import numpy as np
 from IPython import display
 nltk.download('stopwords')
 import importlib.util, sys, gdown
+
 def readText(fileName, encod):
     f = open(fileName, 'r', encoding=encod)
     text = f.read()
@@ -576,7 +577,7 @@ def создать_выборки_чатбота(вопросы, ответы, �
   ######################
   # Подключаем керасовский токенизатор и собираем словарь индексов
   ######################
-  tokenizer = Tokenizer()
+  tokenizer = Tokenizer(oov_token='unknown')
   tokenizer.fit_on_texts(questions + n_answers) # загружаем в токенизатор список вопросов-ответов для сборки словаря частотности
   vocabularyItems = list(tokenizer.word_index.items()) # список с cодержимым словаря
   vocabularySize = len(vocabularyItems)+1 # размер словаря
@@ -671,7 +672,11 @@ def тест_модели_чат_бот(модель, размер_словар�
     words = sentence.lower().split() # приводит предложение к нижнему регистру и разбирает на слова
     tokensList = list() # здесь будет последовательность токенов/индексов
     for word in words: # для каждого слова в предложении
-      tokensList.append(tokenizer.word_index[word]) # определяем токенизатором индекс и добавляем в список
+      try:
+        tokensList.append(tokenizer.word_index[word]) # определяем токенизатором индекс и добавляем в список
+      except:
+        print('Я не знаю такого слова:', word)
+        tokensList.append(0)
     return pad_sequences([tokensList], maxlen=13 , padding='post')
     
 

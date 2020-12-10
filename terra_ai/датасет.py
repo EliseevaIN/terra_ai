@@ -104,7 +104,7 @@ def загрузить_базу(база = '', справка = False):
     print('Загрузка данных завершена \n')
     if справка:
       print('Загружена база договоров')
-      print('База размечена по 6 категориям: Условия Запреты - Стоимость - Деньги - Сроки - Неустойка')
+      print('База размечена по 6 категориям: Условия - Запреты - Стоимость - Деньги - Сроки - Неустойка')
 # s6 Всё про адреса и геолокации
     print()
     return x
@@ -115,6 +115,27 @@ def загрузить_базу(база = '', справка = False):
     if справка:
       print('Загружена база квартир')
     print()
+  elif база == 'ТРАФИК':
+    загрузить_базу_ТРАФИК()
+    display.clear_output(wait=True)
+    print('Загрузка данных завершена \n')
+    if справка:
+      print('Загружена база трафика компании')
+    print()
+  elif база == 'УМНЫЙ ДОМ':
+    загрузить_базу_УМНЫЙ_ДОМ()
+    display.clear_output(wait=True)
+    print('Загрузка данных завершена \n')
+    if справка:
+      print('Загружена база голосовых команд для умного дома')
+    print()
+  elif база == 'ТРЕЙДИНГ':
+    загрузить_базу_ТРЕЙДИНГ()
+    display.clear_output(wait=True)
+    print('Загрузка данных завершена \n')
+    if справка:
+      print('Загружены базы акций трех вариантов: полиметаллы, газпром и яндекс')
+    print()
   else:
     display.clear_output(wait=True)
     print('Указанная база не найдена \n')
@@ -122,6 +143,20 @@ def загрузить_базу(база = '', справка = False):
 def загрузить_базу_МНИСТ():
   (x_train_org, y_train_org), (x_test_org, y_test_org) = datasets.mnist.load_data() # Загружаем данные набора MNIST
   return (x_train_org, y_train_org), (x_test_org, y_test_org)
+
+def загрузить_базу_ТРАФИК():
+  url = 'https://storage.googleapis.com/aiu_bucket/traff.csv'
+  output = 'traff.csv' # Указываем имя файла, в который сохраняем файл
+  gdown.download(url, output, quiet=True) 
+
+def загрузить_базу_ТРЕЙДИНГ():
+  url = 'https://storage.googleapis.com/aiu_bucket/shares.zip'
+  output = 'shares.zip' # Указываем имя файла, в который сохраняем файл
+  gdown.download(url, output, quiet=True) 
+  распаковать_архив(
+      откуда = "shares.zip",
+      куда = "/content"
+  )
 
 def загрузить_базу_АВТОМОБИЛИ():
   url = 'https://storage.googleapis.com/aiu_bucket/car_2.zip'
@@ -131,6 +166,17 @@ def загрузить_базу_АВТОМОБИЛИ():
       откуда = "car.zip",
       куда = "/content/автомобили"
   )
+
+def загрузить_базу_УМНЫЙ_ДОМ():
+  url = 'https://storage.googleapis.com/aiu_bucket/cHome.zip'
+  output = 'cHome.zip' # Указываем имя файла, в который сохраняем файл
+  gdown.download(url, output, quiet=True) # Скачиваем файл по указанному URL
+  распаковать_архив(
+      откуда = "cHome.zip",
+      куда = "/content/Умный_дом"
+  )
+
+
 
 def загрузить_базу_КВАРТИРЫ():
   url = 'https://storage.googleapis.com/aiu_bucket/moscow.csv'

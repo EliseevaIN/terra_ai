@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='terra_ai',
-    version='0.0.9',
+    version='0.0.0.36',
     packages=['terra_ai'],
     url='',
     license='',

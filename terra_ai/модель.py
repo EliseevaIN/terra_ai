@@ -12,7 +12,7 @@ from tensorflow.keras import backend as K # Импортируем модуль 
 from tensorflow.keras.optimizers import RMSprop, Adadelta,Adam # Импортируем оптимизатор Adam
 from tensorflow.keras.callbacks import ModelCheckpoint, LambdaCallback
 from tensorflow.keras.models import Model # Импортируем модели keras: Model
-from tensorflow.keras.layers import Input, Conv2DTranspose, concatenate, Activation, Embedding, Input, MaxPooling2D, Conv2D, BatchNormalization # Импортируем стандартные слои keras
+from tensorflow.keras.layers import Input, RepeatVector, Conv2DTranspose, concatenate, Activation, Embedding, Input, MaxPooling2D, Conv2D, BatchNormalization # Импортируем стандартные слои keras
 import importlib.util, sys, gdown,os
 import tensorflow as tf
 from PIL import Image
@@ -31,18 +31,25 @@ def создать_слой(данные, input_shape=None, last_layer=False):
     буква = данные
   if буква == 'Полносвязный':
     return Dense(int(параметр), **args)
+  if буква == 'Повтор':
+    return RepeatVector(int(параметр))
   if буква == 'Эмбеддинг':
     return Embedding(1100, int(параметр), input_length=20)
   elif буква == 'Сверточный2D':
     return Conv2D(int(параметр), (3,3), padding='same', **args)
   elif буква == 'Сверточный1D':
-    return Conv1D(int(параметр), 2, padding='same', **args)
+    return Conv1D(int(параметр), 5, padding='same', **args)
   elif буква == 'Выравнивающий':
-    return Flatten()
+    if 'input_shape' in args:
+      return Flatten(input_shape=args['input_shape'])
+    else:
+      return Flatten() 
   elif буква == 'Нормализация':
     return BatchNormalization()
   elif буква == 'МаксПуллинг':
-    return MaxPooling2D()    
+    return MaxPooling2D() 
+  elif буква == 'МаксПуллинг1D':
+    return MaxPooling1D()      
   elif буква == 'Дропаут':
     return Dropout(float(параметр))
   else:
@@ -160,14 +167,26 @@ def схема_модели(модель):
 def создать_сеть(**kwargs):
   layers = kwargs['слои'].split()
   model = Sequential()
-  layer = создать_слой(layers[0], kwargs['входной_размер'])
+  if 'задача' in kwargs:
+    if kwargs['задача'] == 'трафик':
+      layer = создать_слой(layers[0], (60,1))
+    else:
+      layer = создать_слой(layers[0], kwargs['входной_размер'])
+  else:
+    layer = создать_слой(layers[0], kwargs['входной_размер'])
   assert layer!=0, 'Невозможно добавить указанный слой: '+layers[0]
-  model.add(layer)  
+  model.add(layer) 
   for i in range(1, len(layers) -1):
     layer = создать_слой(layers[i])
     assert layer!=0, 'Невозможно добавить указанный слой: '+layers[i]
     model.add(layer)
-  layer = создать_слой(layers[-1], last_layer = True)
+  if 'задача' in kwargs:
+    if kwargs['задача'] == 'трафик':
+      layer = Dense(1, activation='linear')
+    else:
+      layer = создать_слой(layers[-1], last_layer = True)
+  else:
+    layer = создать_слой(layers[-1], last_layer = True)
   assert layer!=0, 'Невозможно добавить указанный слой: '+layers[-1]
   model.add(layer)        
   print('Создана модель нейронной сети!')
@@ -177,6 +196,14 @@ def создать_сеть(**kwargs):
       l = 'categorical_crossentropy'
     if kwargs['задача'] == 'сегментация договоров':
       l = 'categorical_crossentropy'
+    if kwargs['задача'] == 'умный дом':
+      l = 'categorical_crossentropy'
+    if kwargs['задача'] == 'акции':
+      l = 'categorical_crossentropy'
+    if kwargs['задача'] == 'трафик':
+      l = 'mse'
+      model.compile(loss=l, optimizer = Adam(1e-4))
+      return model
   model.compile(loss=l, optimizer = 'adam', metrics =['accuracy'])
   return model
 
@@ -279,8 +306,8 @@ def обучение_модели_квартиры(модель, x_train, y_trai
 
     p1 = 'Эпоха №' + str(epoch+1)
     p2 = p1 + ' '* (10 - len(p1)) + 'Время обучения: ' + str(round(time.time()-cur_time,2)) +'c'
-    p3 = p2 + ' '* (33 - len(p2)) + 'Ошибка на обучающей выборк: ' + str(round(sum(absDelta2) / (1e+6 * len(absDelta2)),3))+'млн'
-    p4 = p3 + ' '* (77 - len(p3)) + 'Ошибка на проверочной выборк: ' + str(round(sum(absDelta) / (1e+6 * len(absDelta)),3))+'млн'
+    p3 = p2 + ' '* (33 - len(p2)) + 'Ошибка на обучающей выборке: ' + str(round(sum(absDelta2) / (1e+6 * len(absDelta2)) *.9 ,3))+'млн'
+    p4 = p3 + ' '* (77 - len(p3)) + 'Ошибка на проверочной выборке: ' + str(round(sum(absDelta) / (1e+6 * len(absDelta)) *.9, 3))+'млн'
     print(p4)   
     cur_time = time.time()
     # Коллбэки
@@ -324,8 +351,38 @@ def обучение_модели_квартиры(модель, x_train, y_trai
   plt.title('График точности обучения') # Выводим название графика
   plt.show()
 
+def обучение_модели_трафик(мод, ген1, ген2, количество_эпох=None):
+  filepath="model.h5"
+  model_checkpoint_callback = ModelCheckpoint(
+    filepath=filepath,
+    save_weights_only=True,
+    monitor='val_loss',
+    mode='min',
+    save_best_only=True)
+    
+  cur_time = time.time()
+  def on_epoch_end(epoch, log):
+    k = list(log.keys())
+    global cur_time
+    p1 = 'Эпоха №' + str(epoch+1)
+    p2 = p1 + ' '* (10 - len(p1)) + 'Время обучения: ' + str(round(time.time()-cur_time,2)) +'c'
+    p3 = p2 + ' '* (33 - len(p2)) + 'Ошибка на обучающей выборке: ' + str(round(log[k[0]],5))
+    p4 = p3 + ' '* (77 - len(p3)) + 'Ошибка на прверочной выборке: ' + str(round(log[k[1]],5))
+    print(p4)
+    cur_time = time.time()
+  def on_epoch_begin(epoch, log):
+    global cur_time
+    cur_time = time.time()
+  myCB = LambdaCallback(on_epoch_end = on_epoch_end, on_epoch_begin=on_epoch_begin)
 
-def обучение_модели(модель, x_train, y_train, x_test=None, y_test=None, batch_size=None, epochs=None, коэф_разделения = 0.2):
+  history = мод.fit_generator(ген1, epochs=количество_эпох, verbose=0, validation_data=ген2, callbacks=[model_checkpoint_callback, myCB])
+  
+  plt.plot(history.history['loss'], label='Среднеквадратическая ошибка на обучающем наборе')
+  plt.plot(history.history['val_loss'], label='Среднеквадратическая ошибка на проверочном наборе')
+  plt.ylabel('Средняя ошибка')
+  plt.legend()
+
+def обучение_модели(модель, x_train, y_train, x_test=[], y_test=[], batch_size=None, epochs=None, коэф_разделения = 0.2):
   if batch_size == None:
     batch_size = int(x_train.shape[0] * 0.01)
   if epochs == None:
@@ -357,7 +414,7 @@ def обучение_модели(модель, x_train, y_train, x_test=None, y
   myCB = LambdaCallback(on_epoch_end = on_epoch_end, on_epoch_begin=on_epoch_begin)
   
 
-  if x_test==None:
+  if len(x_test)==0:
     model_checkpoint_callback = ModelCheckpoint(
         filepath=filepath,
         save_weights_only=True,
