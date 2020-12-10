@@ -1,0 +1,16 @@
+README.rst
+setup.cfg
+setup.py
+terra_ai/датасет.py
+terra_ai/квартиры.py
+terra_ai/модель.py
+terra_ai/обнаружение.py
+terra_ai/обработка_текста.py
+terra_ai/повышение_размерности.py
+terra_ai/сегментация.py
+terra_ai/сегментация_договоров.py
+terra_ai/терра_ии.py
+terra_ai.egg-info/PKG-INFO
+terra_ai.egg-info/SOURCES.txt
+terra_ai.egg-info/dependency_links.txt
+terra_ai.egg-info/top_level.txt
